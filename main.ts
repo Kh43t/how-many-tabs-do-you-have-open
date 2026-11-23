@@ -1,4 +1,4 @@
-import { mkdirSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 
 // How Many Tabs Do You Have Open? — the honest count: 1618.
 //
@@ -25,4 +25,17 @@ function singleNumber(text: string): string {
 }
 
 mkdirSync(OUT_DIR, { recursive: true });
-writeFileSync(OUT_FILE, singleNumber(COUNT), "utf8");
+const count = singleNumber(COUNT);
+writeFileSync(OUT_FILE, count, "utf8");
+
+// Read-back verification: a write that silently lands truncated or
+// corrupted would still exit 0 and submit a wrong count. Refuse to
+// finish unless the file on disk is byte-for-byte the count we meant
+// to write — the entry is only real once it survives the round trip.
+const written = readFileSync(OUT_FILE, "utf8");
+if (written !== count) {
+  throw new Error(
+    `read-back mismatch: expected ${JSON.stringify(count)}, ` +
+      `found ${JSON.stringify(written)} in ${OUT_FILE}`,
+  );
+}
